@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Serverless HR lookup backend with Cognito-protected API Gateway REST API.
+
+Parameters:
+  CognitoDomainPrefix:
+    Type: String
+    Description: Globally unique lowercase Cognito domain prefix for this AWS Region.
+    AllowedPattern: '^[a-z0-9-]+$'
+  CallbackUrl:
+    Type: String
+    Default: http://localhost:5173/
+    Description: Frontend callback URL. Include the trailing slash.
+  LogoutUrl:
+    Type: String
+    Default: http://localhost:5173/
+    Description: Frontend logout URL. Include the trailing slash.
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 10
+    MemorySize: 256
+    Tracing: Active
+
+Resources:
+  EmployeeTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: hr-employees
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: EmployeeID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: EmployeeID
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false
+
+  HrUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: hr-lookup-users
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+
+  HrUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref HrUserPool
+      ClientName: hr-lookup-public-client
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid
+        - email
+        - profile
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURLs:
+        - !Ref CallbackUrl
+      LogoutURLs:
+        - !Ref LogoutUrl
+
+  HrUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Ref CognitoDomainPrefix
+      UserPoolId: !Ref HrUserPool
+
+  HrApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: hr-lookup-api
+      StageName: Prod
+      EndpointConfiguration:
+        Type: REGIONAL
+      Cors:
+        AllowOrigin: "'*'"
+        AllowHeaders: "'Authorization,Content-Type'"
+        AllowMethods: "'GET,OPTIONS'"
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt HrUserPool.Arn
+        AddDefaultAuthorizerToCorsPreflight: false
+
+  EmployeeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: hr-employee-lookup
+      CodeUri: src/employee/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref EmployeeTable
+      Policies:
+        - Statement:
+            - Sid: ReadEmployeeByPrimaryKey
+              Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt EmployeeTable.Arn
+      Events:
+        GetEmployee:
+          Type: Api
+          Properties:
+            RestApiId: !Ref HrApi
+            Path: /employee/{id}
+            Method: GET
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+Outputs:
+  ApiUrl:
+    Description: Base URL for the deployed REST API.
+    Value: !Sub https://${HrApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
+  EmployeeEndpoint:
+    Description: Cognito-protected employee lookup endpoint.
+    Value: !Sub https://${HrApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/employee/{id}
+  EmployeeTableName:
+    Value: !Ref EmployeeTable
+  UserPoolId:
+    Value: !Ref HrUserPool
+  UserPoolClientId:
+    Value: !Ref HrUserPoolClient
+  CognitoManagedLoginDomain:
+    Value: !Sub https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com

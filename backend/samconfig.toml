@@ -1,0 +1,13 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "hr-lookup-dev"
+resolve_s3 = true
+s3_prefix = "hr-lookup-dev"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "CognitoDomainPrefix=\"sanjana-hr-lookup-2026\" CallbackUrl=\"http://localhost:5173/\" LogoutUrl=\"http://localhost:5173/\""
+image_repositories = []
+
+[default.global.parameters]
+region = "us-east-1"
