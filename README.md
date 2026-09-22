@@ -28,24 +28,34 @@ The browser never connects directly to DynamoDB, and AWS credentials are never s
 ```text
 .
 ├── README.md
-├── .gitignore
 ├── .env.example
+├── hr-lookup-api-Prod-oas30-apigateway.json
 ├── package.json
-├── src/
-│   ├── App.jsx
-│   ├── api.js
-│   ├── main.jsx
-│   └── styles.css
+├── frontend/
+|   ├── node_modules/
+|   ├── src/
+|   |   ├── api.js
+|   |   ├── App.jsx
+|   |   ├── main.jsx
+|   |   ├── styles.css
+|   ├── .env
+|   ├── .gitignore
+|   ├──index.html
+|   ├── package-lock.json
+|   ├── package.json
+|   ├── README-frontend.md
+|   └── vite.config.js
 ├── backend/
 │   ├── template.yaml
+|   ├── requirements.txt
+|   ├── samconfig.toml
+|   ├── README-backend.md
 │   ├── requirements.txt
 │   ├── scripts/
 │   │   └── seed_data.py
 │   └── src/
 │       └── employee/
 │           └── app.py
-└── docs/
-    └── architecture-diagram.svg
 ```
 
 ## Application Architecture
