@@ -22,6 +22,25 @@ Globals:
     MemorySize: 256
     Tracing: Active
 Resources:
+  UiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: hr-ui
+      CodeUri: UiFunction
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Timeout: 10
+      MemorySize: 256
+      Events:
+        GetUi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: HrApi
+            Path: /
+            Method: GET
+    Metadata:
+      SamResourceId: UiFunction
   EmployeeTable:
     Type: AWS::DynamoDB::Table
     Properties:

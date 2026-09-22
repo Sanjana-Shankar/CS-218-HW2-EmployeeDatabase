@@ -9,4 +9,13 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["EmployeeFunction"]
 
+[function_build_definitions.d3a05f10-f03e-4f4f-a1c6-47464f674bc8]
+codeuri = "/Users/sanjanashankar/CS-218-HW2-EmployeeDatabase/backend/src/ui"
+runtime = "python3.12"
+architecture = "x86_64"
+handler = "app.lambda_handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["UiFunction"]
+
 [layer_build_definitions]
